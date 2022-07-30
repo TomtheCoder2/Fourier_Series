@@ -1,5 +1,8 @@
 package fourier;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static java.lang.Math.atan2;
 
 public class Fourier {
@@ -7,12 +10,23 @@ public class Fourier {
      * Look at the formula <a href="https://wikimedia.org/api/rest_v1/media/math/render/svg/8e904306df1ed48e64053b1f579c8bfab5508157">here</a>
      * <svg xmlns="https://wikimedia.org/api/rest_v1/media/math/render/svg/8e904306df1ed48e64053b1f579c8bfab5508157" viewBox="0 0 800 600">
      */
-    public static fourierComponent[] dft(Complex[] x) {
+    public static fourierComponent[] dft(Complex[] input) {
+        ArrayList<Complex> xA = new ArrayList<>();
+        for (Complex c : input) {
+            if (!c.sectionEnd) {
+                xA.add(c);
+            }
+        }
+        Complex[] x = xA.toArray(Complex[]::new);
+
         int N = x.length;
         fourierComponent[] X = new fourierComponent[N];
         for (int k = 0; k < N; k++) {
             Complex sum = new Complex(0, 0);
             for (int n = 0; n < N; n++) {
+                if (x[n].sectionEnd) {
+                    continue;
+                }
                 double phi = (Math.PI * 2 * k * n) / N;
                 Complex c = new Complex(Math.cos(phi), -Math.sin(phi));
                 sum.add(x[n].mult(c));
@@ -33,6 +47,11 @@ public class Fourier {
         public double freq;
         public double amp;
         public double phase;
+        public boolean sectionEnd = false;
+
+        public fourierComponent(boolean sectionEnd) {
+            this.sectionEnd = sectionEnd;
+        }
 
         public fourierComponent(double re, double im, double freq, double amp, double phase) {
             this.re = re;

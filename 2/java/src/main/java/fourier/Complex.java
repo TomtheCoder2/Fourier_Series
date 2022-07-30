@@ -3,9 +3,14 @@ package fourier;
 public class Complex {
     public double re = 0;
     public double im = 0;
+    public boolean sectionEnd = false;
     public Complex(double a, double b) {
         this.re = a;
         this.im = b;
+    }
+
+    public Complex(boolean sectionEnd) {
+        this.sectionEnd = sectionEnd;
     }
 
     public void add(Complex c) {

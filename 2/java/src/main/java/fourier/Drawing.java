@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.Objects;
 
 public class Drawing {
     /**
@@ -30,10 +30,11 @@ public class Drawing {
     }
 
     /**
-     * convert your svgs to paths <a href="https://shinao.github.io/PathToPoints/">here</a>*/
+     * convert your svgs to paths <a href="https://shinao.github.io/PathToPoints/">here</a>
+     */
     public static double[][] getDrawing(String fileName) {
         String s = readFile(fileName);
-        s = s.replaceAll("#\n*", "");
+//        s = s.replaceAll("#\n*", "");
         s = s.replace("{", "");//replacing all [ to ""
 //        s = s.substring(0, s.length() - 2);//ignoring last two ]]
         s = s.replace("}}", "");
@@ -58,7 +59,9 @@ public class Drawing {
         for (int i = 0; i < my_matrics.length; i++) {
             for (int j = 0; j < my_matrics[i].length; j++) {
 //                System.out.println(my_matrics[i][j]);
-                output[i][j] = Double.parseDouble(my_matrics[i][j]);
+                if (!Objects.equals(my_matrics[i][j], "#") && my_matrics[i][j] != null) {
+                    output[i][j] = Double.parseDouble(my_matrics[i][j]);
+                }
             }
         }
 

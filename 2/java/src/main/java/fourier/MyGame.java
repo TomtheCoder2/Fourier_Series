@@ -15,17 +15,16 @@ import static java.lang.Math.*;
  */
 public class MyGame {
     private static final long REFRESH_INTERVAL_MS = 17;
-    // Fourier
-    public static Complex[] originalFunction;
+    public static ArrayList<Complex> originalFunction;
     public static Fourier.fourierComponent[] fourier;
     private static double time = 0;
     private static ArrayList<Pair<Double, Double>> path = new ArrayList<>();
     private final Object redrawLock = new Object();
+    int skip = 10;
+    boolean clearScreen = false;
     private Component component;
     private volatile boolean keepGoing = true;
     private Image imageBuffer;
-    int skip = 5;
-    private static boolean connectPoints = true;
 
     public static void main(String[] args) {
         java.awt.EventQueue.invokeLater(() -> {
@@ -55,9 +54,9 @@ public class MyGame {
                 component.getHeight());
         Thread thread = new Thread(this::runGameLoop);
         // init
-        double[][] drawing = Drawing.getDrawing("/pi.txt");
-        originalFunction = new Complex[drawing.length / skip + ((double) (drawing.length % skip) / (double) skip == 0 ? 0 : 1)];
-        System.out.println(round((double) (drawing.length % skip) / (double) skip));
+        double[][] drawing = Drawing.getDrawing("/drawings/butterfly.txt");
+//        originalFunction = new Complex[drawing.length / skip + ((double) (drawing.length % skip) / (double) skip == 0 ? 0 : 1)];
+        originalFunction = new ArrayList<>();
         // calculate by how much to translate the picture so that it fits on to the screen
         double topLeftX = component.getWidth(), topLeftY = component.getHeight(), bottomRightX = 0, bottomRightY = 0;
         for (int i = 0; i < drawing.length; i += skip) {
@@ -81,19 +80,32 @@ public class MyGame {
         double offsetX = -currentWidth * scalar / 2;
         System.out.printf("topLeftX: %f, topLeftY: %f, bottomRightX: %f, bottomRightY: %f\n", scalar * topLeftX, scalar * topLeftY, scalar * bottomRightX, scalar * bottomRightY);
         System.out.printf("offsetX: %f, offsetY: %f, scalar: %f\n", offsetX, offsetY, scalar);
-        for (int i = 0; i < drawing.length; i += skip) {
+//        System.out.println(Arrays.deepToString(drawing));
+        for (int i = 0; i < drawing.length; i += 1) {
 //            System.out.printf("i: %d, len: %d, len or: %d\n", i, drawing.length, originalFunction.length);
-            originalFunction[i / skip] =
-                    new Complex(drawing[i][0]
-                            * scalar
-                            + offsetX
-                            , drawing[i][1]
-                            * scalar
-                            + offsetY
-                    );
+            if (i % skip == 0) {
+                if (drawing[i][0] != 0 && drawing[i][1] != 0) {
+                    originalFunction.add(
+                            new Complex(drawing[i][0]
+                                    * scalar
+                                    + offsetX
+                                    , drawing[i][1]
+                                    * scalar
+                                    + offsetY
+                            ));
+                }
+            }
+            if (drawing[i][0] == 0 && drawing[i][1] == 0) {
+                originalFunction.add(new Complex(true));
+            }
+        }
+        for (Complex c : originalFunction) {
+            if (!c.sectionEnd && c.im == 0 && c.re == 0) {
+                System.out.println(c);
+            }
         }
 //        System.out.println(Arrays.toString(originalFunction));
-        fourier = dft(originalFunction);
+        fourier = dft(originalFunction.toArray(Complex[]::new));
         fourier = Arrays.stream(fourier).sorted((o1, o2) -> {
             if (o2.amp - o1.amp < 0) {
                 return -1;
@@ -104,6 +116,7 @@ public class MyGame {
             }
 //           return (int) (o2.amp - o1.amp);
         }).toList().toArray(new Fourier.fourierComponent[0]);
+
 
         thread.start();
     }
@@ -186,19 +199,28 @@ public class MyGame {
         g.fillRect(0, 0, component.getWidth(), component.getHeight());
         g.setColor(new Color(0xffffff));
         Pair<Double, Double> v = epiCycles(component.getWidth() / 2.0, component.getHeight() / 2.0, 0, fourier, g);
-        path.add(0, v);
+        if (!path.contains(v)) path.add(0, v);
         g.setColor(new Color(0xffffff));
+        System.out.println();
         for (int i = 0; i < path.size(); i++) {
             Pair<Double, Double> doubleDoublePair = path.get(i);
             g.drawOval((int) doubleDoublePair.a.doubleValue(), (int) doubleDoublePair.b.doubleValue(), 1, 1);
-            if (i != 0 && connectPoints) {
-                g.drawLine((int) doubleDoublePair.a.doubleValue(), (int) doubleDoublePair.b.doubleValue(),
-                        (int) path.get(i - 1).a.doubleValue(), (int) path.get(i - 1).b.doubleValue());
+            if (i != 0) {
+                double dist = sqrt(pow(doubleDoublePair.a - path.get(i - 1).a, 2) + pow(doubleDoublePair.b - path.get(i - 1).b, 2));
+//                if (!originalFunction.get(i - 1).sectionEnd) {
+                if (dist < 20) {
+                    g.drawLine((int) doubleDoublePair.a.doubleValue(), (int) doubleDoublePair.b.doubleValue(),
+                            (int) path.get(i - 1).a.doubleValue(), (int) path.get(i - 1).b.doubleValue());
+                }
+//                }
             }
+//            System.out.printf("or: %f,%f, path: %f,%f\n", originalFunction.get(i).re, originalFunction.get(i).im, path.get(i).a, path.get(i).b);
         }
         if (time > PI * 2) {
             time = 0;
-            path = new ArrayList<>();
+            if (clearScreen) {
+                path = new ArrayList<>();
+            }
         }
 
         double dt = (PI * 2) / fourier.length;
