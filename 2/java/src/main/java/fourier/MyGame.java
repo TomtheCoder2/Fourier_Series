@@ -19,14 +19,29 @@ public class MyGame {
     public static Fourier.fourierComponent[] fourier;
     private static double time = 0;
     private static ArrayList<Pair<Double, Double>> path = new ArrayList<>();
+    private static String[] static_args;
+    private static int skip = 10;
+    private static boolean clearScreen = false;
     private final Object redrawLock = new Object();
-    int skip = 10;
-    boolean clearScreen = false;
     private Component component;
     private volatile boolean keepGoing = true;
     private Image imageBuffer;
 
     public static void main(String[] args) {
+        static_args = args;
+        System.out.println(Arrays.toString(static_args));
+        if (args.length > 1) {
+            try {
+                skip = Integer.parseInt(args[1]);
+            } catch (Exception ignored) {
+            }
+        }
+        if (args.length > 2) {
+            try {
+                clearScreen = Boolean.parseBoolean(args[2]);
+            } catch (Exception ignored) {
+            }
+        }
         java.awt.EventQueue.invokeLater(() -> {
             MyGame game = new MyGame();
             MyComponent component = new MyComponent(game);
@@ -54,17 +69,18 @@ public class MyGame {
                 component.getHeight());
         Thread thread = new Thread(this::runGameLoop);
         // init
-        double[][] drawing = Drawing.getDrawing("/drawings/butterfly.txt");
+        double[][] drawing = Drawing.getDrawing(static_args.length > 0 ? static_args[0] : "/drawings/java.txt");
 //        originalFunction = new Complex[drawing.length / skip + ((double) (drawing.length % skip) / (double) skip == 0 ? 0 : 1)];
         originalFunction = new ArrayList<>();
         // calculate by how much to translate the picture so that it fits on to the screen
         double topLeftX = component.getWidth(), topLeftY = component.getHeight(), bottomRightX = 0, bottomRightY = 0;
-        for (int i = 0; i < drawing.length; i += skip) {
-            topLeftX = min(drawing[i][0], topLeftX);
-            topLeftY = min(drawing[i][1], topLeftY);
+        for (double[] doubles : drawing) {
+            if (doubles[1] == 0 && doubles[0] == 0) continue;
+            topLeftX = min(doubles[0], topLeftX);
+            topLeftY = min(doubles[1], topLeftY);
 
-            bottomRightX = max(drawing[i][0], bottomRightX);
-            bottomRightY = max(drawing[i][1], bottomRightY);
+            bottomRightX = max(doubles[0], bottomRightX);
+            bottomRightY = max(doubles[1], bottomRightY);
         }
         System.out.printf("topLeftX: %f, topLeftY: %f, bottomRightX: %f, bottomRightY: %f\n", topLeftX, topLeftY, bottomRightX, bottomRightY);
         double targetHeight = component.getHeight() * 3.0 / 4.0;
@@ -76,10 +92,12 @@ public class MyGame {
         if (scalar * currentWidth > targetWidth) {
             scalar = targetWidth / currentWidth;
         }
-        double offsetY = -currentHeight * scalar / 2;
-        double offsetX = -currentWidth * scalar / 2;
+        double offsetY = -currentHeight * scalar / 2 - topLeftY * scalar;
+        double offsetX = -currentWidth * scalar / 2 - topLeftX * scalar;
+
         System.out.printf("topLeftX: %f, topLeftY: %f, bottomRightX: %f, bottomRightY: %f\n", scalar * topLeftX, scalar * topLeftY, scalar * bottomRightX, scalar * bottomRightY);
         System.out.printf("offsetX: %f, offsetY: %f, scalar: %f\n", offsetX, offsetY, scalar);
+        System.out.printf("topLeftX: %f, topLeftY: %f, bottomRightX: %f, bottomRightY: %f\n", scalar * topLeftX + offsetX, scalar * topLeftY + offsetY, scalar * bottomRightX + offsetX, scalar * bottomRightY + offsetY);
 //        System.out.println(Arrays.deepToString(drawing));
         for (int i = 0; i < drawing.length; i += 1) {
 //            System.out.printf("i: %d, len: %d, len or: %d\n", i, drawing.length, originalFunction.length);
@@ -201,10 +219,10 @@ public class MyGame {
         Pair<Double, Double> v = epiCycles(component.getWidth() / 2.0, component.getHeight() / 2.0, 0, fourier, g);
         if (!path.contains(v)) path.add(0, v);
         g.setColor(new Color(0xffffff));
-        System.out.println();
+//        System.out.println();
         for (int i = 0; i < path.size(); i++) {
             Pair<Double, Double> doubleDoublePair = path.get(i);
-            g.drawOval((int) doubleDoublePair.a.doubleValue(), (int) doubleDoublePair.b.doubleValue(), 1, 1);
+//            g.drawOval((int) doubleDoublePair.a.doubleValue(), (int) doubleDoublePair.b.doubleValue(), 1, 1);
             if (i != 0) {
                 double dist = sqrt(pow(doubleDoublePair.a - path.get(i - 1).a, 2) + pow(doubleDoublePair.b - path.get(i - 1).b, 2));
 //                if (!originalFunction.get(i - 1).sectionEnd) {

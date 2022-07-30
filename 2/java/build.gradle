@@ -7,8 +7,8 @@ sourceCompatibility = 16
 
 repositories {
     maven { url 'https://www.jitpack.io' }
-    maven { url 'https://repository.openmindonline.it/'}
-    maven { url 'https://maven.wso2.org/nexus/content/repositories/releases/'}
+    maven { url 'https://repository.openmindonline.it/' }
+    maven { url 'https://maven.wso2.org/nexus/content/repositories/releases/' }
     maven {
         name 'm2-dv8tion'
         url 'https://m2.dv8tion.net/releases'
@@ -20,20 +20,14 @@ repositories {
 dependencies {
 }
 
-jar {
-    version = null
-    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Fourier Series',
+                'Implementation-Version': 1.0,
+                'Main-Class': 'fourier.MyGame'
+    }
+    baseName = 'Fourier_Series'
     from {
         configurations.runtimeClasspath.findAll { !it.name.endsWith('pom') }.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-}
-buildscript {
-    ext.kotlin_version = '1.6.0'
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
+    } with jar
 }
