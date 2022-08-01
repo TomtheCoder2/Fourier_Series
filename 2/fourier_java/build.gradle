@@ -8,7 +8,7 @@ sourceCompatibility = 16
 repositories {
     maven { url "https://jitpack.io" }
     maven { url 'https://repository.openmindonline.it/' }
-    maven { url 'https://maven.wso2.org/nexus/content/repositories/releases/' }
+    maven { url 'https://www.dcm4che.org/maven2//' }
     maven { url 'https://github.com/'}
     maven {
         name 'm2-dv8tion'
@@ -19,13 +19,15 @@ repositories {
 
 
 dependencies {
+
+
 }
 
 task fatJar(type: Jar) {
     manifest {
         attributes 'Implementation-Title': 'Fourier Series',
                 'Implementation-Version': 1.0,
-                'Main-Class': 'Panel.MyGame'
+                'Main-Class': 'fourier.MyGame'
     }
     baseName = 'Fourier_Series'
     from {

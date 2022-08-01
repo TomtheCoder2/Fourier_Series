@@ -41,5 +41,10 @@
       <option name="name" value="maven4" />
       <option name="url" value="https://github.com/" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="maven3" />
+      <option name="name" value="maven3" />
+      <option name="url" value="https://www.dcm4che.org/maven2//" />
+    </remote-repository>
   </component>
 </project>

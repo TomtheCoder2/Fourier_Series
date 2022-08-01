@@ -19,4 +19,12 @@ public class FourierComponent {
         this.amp = amp;
         this.phase = phase;
     }
+
+    @Override
+    public String toString() {
+        return "FourierComponent{" +
+                "re=" + re +
+                ", im=" + im +
+                '}';
+    }
 }

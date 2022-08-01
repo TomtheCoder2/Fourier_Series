@@ -1,25 +1,20 @@
-package Panel;
-
-import fourier.Complex;
-import fourier.Drawing;
-import fourier.FourierComponent;
+package fourier;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.geom.AffineTransform;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
+import static fourier.CreateImage.createImage;
 import static fourier.Fourier.dft;
 import static java.lang.Math.*;
 
-/**
- * Self contained demo swing game for stackoverflow frame rate question.
- *
- * @author dave
- */
 public class MyGame {
     private static final long REFRESH_INTERVAL_MS = 17;
     public static ArrayList<Complex> originalFunction;
@@ -27,7 +22,7 @@ public class MyGame {
     private static double time = 0;
     private static ArrayList<Pair<Double, Double>> path = new ArrayList<>();
     private static String[] static_args;
-    private static int skip = 10;
+    private static int skip = 1;
     private static boolean clearScreen = false;
     private static Component component;
     private static Image imageBuffer;
@@ -36,6 +31,7 @@ public class MyGame {
     private static double zoom = 1;
     private static int zoomPointX;
     private static int zoomPointY;
+    private static String fileName = "/drawings/java.txt";
     private final Object redrawLock = new Object();
     private volatile boolean keepGoing = true;
 
@@ -83,24 +79,15 @@ public class MyGame {
                 if (zoom < 0.01) {
                     zoom = 0.01;
                 }
-//                    repaint();
-//                    System.out.println("zoom = " + zoom);
             });
 
             game.start(component);
         });
     }
 
-    public static void setup() {
-        System.out.printf("Setup everything...\nskip: %d, clearScreen: %b\nDimensions:\n\twidth: %dpx\n\theight: %dpx\n\n", skip, clearScreen, component.getWidth(), component.getHeight());
-        path = new ArrayList<>();
-        imageBuffer = component.createImage(component.getWidth(),
-                component.getHeight());
-        // init
-//        originalFunction = new Complex[drawing.length / skip + ((double) (drawing.length % skip) / (double) skip == 0 ? 0 : 1)];
-        originalFunction = new ArrayList<>();
+    public static double[] getScalarAndOffset(int width, int height, double[][] drawing) {
         // calculate by how much to translate the picture so that it fits on to the screen
-        double topLeftX = component.getWidth(), topLeftY = component.getHeight(), bottomRightX = 0, bottomRightY = 0;
+        double topLeftX = width, topLeftY = height, bottomRightX = 0, bottomRightY = 0;
         for (double[] doubles : drawing) {
             if (doubles[1] == 0 && doubles[0] == 0) continue;
             topLeftX = min(doubles[0], topLeftX);
@@ -109,10 +96,8 @@ public class MyGame {
             bottomRightX = max(doubles[0], bottomRightX);
             bottomRightY = max(doubles[1], bottomRightY);
         }
-//        System.out.printf("topLeftX: %f, topLeftY: %f, bottomRightX: %f, bottomRightY: %f\n", topLeftX, topLeftY, bottomRightX, bottomRightY);
-        double targetHeight = component.getHeight() * 3.0 / 4.0;
-        double targetWidth = component.getWidth() * 3.0 / 4.0;
-//        System.out.printf("targetHeight: %f, targetWidth: %f\n", targetHeight, targetWidth);
+        double targetHeight = height * 3.0 / 4.0;
+        double targetWidth = width * 3.0 / 4.0;
         double currentHeight = bottomRightY - topLeftY;
         double currentWidth = bottomRightX - topLeftX;
         double scalar = targetHeight / currentHeight;
@@ -121,35 +106,31 @@ public class MyGame {
         }
         double offsetY = -currentHeight * scalar / 2 - topLeftY * scalar;
         double offsetX = -currentWidth * scalar / 2 - topLeftX * scalar;
+        return new double[]{scalar, offsetX, offsetY};
+    }
 
-//        System.out.printf("topLeftX: %f, topLeftY: %f, bottomRightX: %f, bottomRightY: %f\n", scalar * topLeftX, scalar * topLeftY, scalar * bottomRightX, scalar * bottomRightY);
-//        System.out.printf("offsetX: %f, offsetY: %f, scalar: %f\n", offsetX, offsetY, scalar);
-//        System.out.printf("topLeftX: %f, topLeftY: %f, bottomRightX: %f, bottomRightY: %f\n", scalar * topLeftX + offsetX, scalar * topLeftY + offsetY, scalar * bottomRightX + offsetX, scalar * bottomRightY + offsetY);
-//        System.out.println(Arrays.deepToString(drawing));
+    public static void setup() {
+        System.out.printf("Setup everything...\nskip: %d, clearScreen: %b\nDimensions:\n\twidth: %dpx\n\theight: %dpx\n\n", skip, clearScreen, component.getWidth(), component.getHeight());
+        path = new ArrayList<>();
+        imageBuffer = component.createImage(component.getWidth(),
+                component.getHeight());
+        // init
+        originalFunction = new ArrayList<>();
+        double[] d = getScalarAndOffset(component.getWidth(), component.getHeight(), drawing);
+        double scalar = d[0];
+        double offsetX = d[1];
+        double offsetY = d[2];
         for (int i = 0; i < drawing.length; i += 1) {
-//            System.out.printf("i: %d, len: %d, len or: %d\n", i, drawing.length, originalFunction.length);
             if (i % skip == 0) {
                 if (drawing[i][0] != 0 && drawing[i][1] != 0) {
                     originalFunction.add(
-                            new Complex(drawing[i][0]
-                                    * scalar
-                                    + offsetX
-                                    , drawing[i][1]
-                                    * scalar
-                                    + offsetY
-                            ));
+                            new Complex(drawing[i][0] * scalar + offsetX, drawing[i][1] * scalar + offsetY));
                 }
             }
             if (drawing[i][0] == 0 && drawing[i][1] == 0) {
                 originalFunction.add(new Complex(true));
             }
         }
-        for (Complex c : originalFunction) {
-            if (!c.sectionEnd && c.im == 0 && c.re == 0) {
-                System.out.println(c);
-            }
-        }
-//        System.out.println(Arrays.toString(originalFunction));
         fourier = dft(originalFunction.toArray(Complex[]::new));
         fourier = Arrays.stream(fourier).sorted((o1, o2) -> {
             if (o2.amp - o1.amp < 0) {
@@ -159,13 +140,46 @@ public class MyGame {
             } else {
                 return 0;
             }
-//           return (int) (o2.amp - o1.amp);
         }).toList().toArray(new FourierComponent[0]);
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        for (FourierComponent fc : fourier) {
+            sb.append(String.format("{%f, %f}, ", fc.re, fc.im));
+        }
+        sb.append("}");
+        try {
+            String str = sb.toString();
+            BufferedWriter writer = new BufferedWriter(new FileWriter("output.fou"));
+            writer.write(str);
+
+            writer.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println(fileName);
+        System.out.println(Arrays.toString(fileName.split("(\\\\|\\/)")));
+        System.out.println(fileName.split("(\\\\|\\/)")[fileName.split("(\\\\|\\/)").length - 1].replaceAll("\\..*", ""));
+//        createImage(fourier, component.getWidth(), component.getHeight(), fileName.split("(\\\\|\\/)")[fileName.split("(\\\\|\\/)").length - 1].replaceAll("\\..*", ""));
     }
 
     public void start(Component componentIn) {
         component = componentIn;
-        drawing = Drawing.getDrawing(static_args.length > 0 ? static_args[0] : "/drawings/java.txt");
+        if (static_args.length == 0) {
+            skip = 10;
+        } else {
+            fileName = static_args[0];
+        }
+        try {
+            if (Objects.requireNonNull(MyGame.class.getResourceAsStream(fileName)).readAllBytes().length == 0) {
+                System.out.println("File does not exist! " + fileName);
+                System.exit(1);
+            }
+        } catch (Exception e) {
+            System.out.println("File does not exist! " + fileName);
+            e.printStackTrace();
+            System.exit(1);
+        }
+        drawing = Drawing.getDrawing(fileName);
         Thread thread = new Thread(this::runGameLoop);
         setup();
         thread.start();
@@ -246,13 +260,6 @@ public class MyGame {
             resized = false;
         }
 
-        AffineTransform oldTransform = g.getTransform();
-//        g.scale(1.0, 2.0);
-
-//        g.setColor(component.getBackground());
-//        g.fillRect(0, 0, component.getWidth(), component.getHeight());
-//        g.setColor(component.getForeground());
-//        g.drawString("Hi", x++, y++);
         g.setColor(new Color(0x000000));
         g.fillRect(0, 0, component.getWidth(), component.getHeight());
         g.setColor(new Color(0xffffff));
@@ -289,7 +296,6 @@ public class MyGame {
 
         double dt = (PI * 2) / fourier.length;
         time += dt;
-        g.setTransform(oldTransform);
     }
 
     private void waitForPaint() {

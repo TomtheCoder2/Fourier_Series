@@ -20,8 +20,9 @@ public class Fourier {
         Complex[] x = xA.toArray(Complex[]::new);
 
         int N = x.length;
-        FourierComponent[] X = new FourierComponent[N];
-        for (int k = 0; k < N; k++) {
+        int K = x.length;
+        FourierComponent[] X = new FourierComponent[K];
+        for (int k = 0; k < K; k++) {
             Complex sum = new Complex(0, 0);
             for (int n = 0; n < N; n++) {
                 if (x[n].sectionEnd) {
